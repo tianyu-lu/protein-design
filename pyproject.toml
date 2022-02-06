@@ -1,0 +1,24 @@
+[tool.poetry]
+name = "protein_design"
+version = "0.1.0"
+description = "Python tools for protein design"
+authors = ["Tianyu Lu"]
+license = "MIT"
+
+[tool.poetry.dependencies]
+python = ">=3.8,<3.11"
+numpy = "^1.22.2"
+torch = "^1.10.2"
+seaborn = "^0.11.2"
+pandas = "^1.4.0"
+tqdm = "^4.62.3"
+sklearn = "^0.0"
+scipy = "^1.8.0"
+invoke = "^1.6.0"
+biopython = "^1.79"
+
+[tool.poetry.dev-dependencies]
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
