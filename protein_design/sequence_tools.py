@@ -8,39 +8,39 @@ from protein_design.constants import AA, AA_IDX, IDX_AA
 
 
 def get_seqs(fname: Path, format: str = "fasta") -> List[str]:
-    """
-    Read a file of sequences and returns a list of sequences
+    """Read a file of sequences and returns a list of sequences
 
     Parameters
     ----------
-    fname:
+    fname : Path
         Path to sequence file
-    format:
-        Format of the sequence file, e.g. "fasta"
+    format : str, optional
+        Format of the sequence file, by default "fasta"
 
     Returns
     -------
-    List of sequences
+    List[str]
+        List of sequences
     """
     return [record.seq for record in SeqIO.parse(fname, format)]
 
 
 def seq_to_onehot(seq: str, max_len: Optional[int] = None) -> np.ndarray:
-    """
-    Convert a sequence to a one-hot encoded matrix
+    """Convert a sequence to a 2D one-hot encoded matrix
 
     Parameters
     ----------
-    seq:
+    seq : str
         Single letter amino acid sequence, possibly containing gap '-' characters
-    max_len:
+    max_len : Optional[int], optional
         If provided, the returned one-hot encoded matrix will have shape (max_len, 21)
         Sequences longer than max_len are truncated at the tail (C-terminus)
-        Gap characters are added to sequences shorter than max_len at the tail (C-terminus)
+        Gap characters are added to sequences shorter than max_len at the tail (C-terminus), by default None
 
     Returns
     -------
-    np.ndarray of shape (length of seq, 21) or (max_len, 21) if max_len is provided.
+    np.ndarray
+        Array of shape (length of seq, 21) or (max_len, 21) if max_len is provided.
     """
     seq = seq.upper()
 
@@ -59,12 +59,19 @@ def seq_to_onehot(seq: str, max_len: Optional[int] = None) -> np.ndarray:
 
 
 def seqs_to_onehot(fname: Path, format: str = "fasta") -> np.ndarray:
-    """
-    Convert a file of sequences into a one-hot encoded matrix
+    """Converts a file of sequences to a 3D one-hot encoding matrix
+
+    Parameters
+    ----------
+    fname : Path
+        Path to sequence file
+    format : str, optional
+        Format of sequence file, by default "fasta"
 
     Returns
     -------
-    np.ndarray of shape (numer of sequences, maximum length of sequences, 21)
+    np.ndarray
+        Array of shape (numer of sequences, maximum length of sequences, 21)
     """
     seqs = get_seqs(fname, format=format)
 
