@@ -16,6 +16,7 @@ sklearn = "^0.0"
 scipy = "^1.8.0"
 invoke = "^1.6.0"
 biopython = "^1.79"
+black = "^22.1.0"
 
 [tool.poetry.dev-dependencies]
 
