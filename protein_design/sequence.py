@@ -58,23 +58,19 @@ def seq_to_onehot(seq: str, max_len: Optional[int] = None) -> np.ndarray:
     return onehot
 
 
-def seqs_to_onehot(fname: Path, format: str = "fasta") -> np.ndarray:
-    """Converts a file of sequences to a 3D one-hot encoding matrix
+def seqs_to_onehot(seqs: list[str]) -> np.ndarray:
+    """Converts a list of amino acid sequences to a 3D one-hot encoding matrix
 
     Parameters
     ----------
-    fname : Path
-        Path to sequence file
-    format : str, optional
-        Format of sequence file, by default "fasta"
+    seqs : list[str]
+        List of amino acid sequences
 
     Returns
     -------
     np.ndarray
         Array of shape (numer of sequences, maximum length of sequences, 21)
     """
-    seqs = get_seqs(fname, format=format)
-
     max_len = max(len(seq) for seq in seqs)
 
     onehots = []
