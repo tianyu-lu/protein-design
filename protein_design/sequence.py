@@ -58,13 +58,15 @@ def seq_to_onehot(seq: str, max_len: Optional[int] = None) -> np.ndarray:
     return onehot
 
 
-def seqs_to_onehot(seqs: list[str]) -> np.ndarray:
+def seqs_to_onehot(seqs: List[str], flatten: bool = False) -> np.ndarray:
     """Converts a list of amino acid sequences to a 3D one-hot encoding matrix
 
     Parameters
     ----------
     seqs : list[str]
         List of amino acid sequences
+    flatten : bool
+        If True, flattens each one-hot encoded sequence
 
     Returns
     -------
@@ -77,4 +79,9 @@ def seqs_to_onehot(seqs: list[str]) -> np.ndarray:
     for seq in seqs:
         onehots.append(seq_to_onehot(seq, max_len=max_len))
 
-    return np.array(onehots)
+    if flatten:
+        result = np.array(onehots)
+        N, L, D = result.shape
+        return result.reshape(N, L*D)
+    else:
+        return np.array(onehots)
