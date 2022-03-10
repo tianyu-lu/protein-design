@@ -18,8 +18,11 @@ invoke = "^1.6.0"
 biopython = "^1.79"
 black = "^22.1.0"
 Sphinx = "^4.4.0"
+plotly = "^5.6.0"
+umap-learn = "^0.5.2"
 
 [tool.poetry.dev-dependencies]
+ipdb = "^0.13.9"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
