@@ -38,6 +38,7 @@ def forward_pass(model: nn.Module, X: torch.tensor, y: torch.tensor) -> torch.te
 def training_step(model: nn.Module, data_generator: Callable, optimizer, scheduler):
     X, y = next(data_generator)
 
+    optimizer.zero_grad()
     loss = forward_pass(model, X, y)
 
     loss.backward()
@@ -72,7 +73,7 @@ def train(
         optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
     if scheduler is None:
         scheduler = torch.optim.lr_scheduler.CyclicLR(
-            optimizer, 1e-5, 1e-4, cycle_momentum=False
+            optimizer, 1e-4, 1e-3, cycle_momentum=False
         )
 
     if y_train is None:
