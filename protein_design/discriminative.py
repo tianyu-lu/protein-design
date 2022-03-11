@@ -7,7 +7,6 @@ class MLP(nn.Module):
 
         self.data_dim = kwargs["data_dim"]
         self.hid_dim = kwargs["hid_dim"]
-        self.num_layers = kwargs["num_layers"]
 
         self.model = nn.Sequential(
             nn.Linear(self.data_dim, self.hid_dim),

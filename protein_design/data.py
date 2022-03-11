@@ -32,3 +32,9 @@ class SeqfuncData(Dataset):
 
     def __getitem__(self, idx):
         return self.X[idx], self.y[idx]
+
+
+def cycle(dataloader):
+    while True:
+        for data in dataloader:
+            yield data
