@@ -1,4 +1,9 @@
+from typing import Tuple, NamedTuple
+import itertools
 import torch.nn as nn
+import numpy as np
+
+from protein_design.constants import BLOSUM
 
 
 class MLP(nn.Module):
@@ -19,120 +24,91 @@ class MLP(nn.Module):
         return self.model(x)
 
 
-import math
-import torch
-import gpytorch
-from matplotlib import pyplot as plt
-from protein_design.constants import BLOSUM
-
-from pathlib import Path
-import pandas as pd
-from protein_design.sequence import seqs_to_onehot
-from protein_design.splitter import random_split
+class GPParams(NamedTuple):
+    homo_noise: float
+    beta: float
+    c: float
+    d: float
 
 
-fname = Path("/home/tianyulu/Downloads/absolut/4K3J_A/4K3J_AFinalBindings_Process_1_Of_32.txt")
+class SequenceGP:
+    def __init__(self, homo_noise=0.1, beta=0.1, c=1, d=2):
+        self.params = GPParams(homo_noise, beta, c, d)
+        self.K = None
 
-df = pd.read_csv(fname, sep='\t', skiprows=1)
+    def kernel(self, Xi, Xj) -> float:
+        """Return similarity of two amino acid sequences
 
-df_filtered = df.loc[df["Best?"] == True]
-df_filtered = df_filtered.drop_duplicates("Slide")
-df_filtered = df_filtered.iloc[list(range(200))]
+        Parameters
+        ----------
+        Xi
+            Integer encoded amino acid sequence
+        Xj
+            Integer encoded amino acid sequence
 
-seqs = df_filtered["Slide"].to_list()
-X = seqs_to_onehot(seqs, flatten=False)
+        Returns
+        -------
+            K(Xi, Xj) (measure of similarity between Xi and Xj)
+        """
+        beta = self.params.beta
+        c = self.params.c
+        d = self.params.d
+        kij = np.prod(BLOSUM[(Xi, Xj)] ** beta)
+        kii = np.prod(BLOSUM[(Xi, Xi)] ** beta)
+        kjj = np.prod(BLOSUM[(Xj, Xj)] ** beta)
+        k = kij / (np.sqrt(kii * kjj))
+        k = np.exp(c * k)
+        k = (k + c) / d
+        return k
 
-y = energies = df_filtered["Energy"].to_numpy()
+    def _fill_K(self):
+        self.K = np.zeros((self.N, self.N))
+        homo_noise = self.params.homo_noise
+        for i in range(self.N):
+            for j in range(i, self.N):
+                kij = self.kernel(self.X[i], self.X[j])
+                if i == j:
+                    kij += homo_noise
+                self.K[i, j] = kij
+                self.K[j, i] = kij
 
+    def fit(self, X: np.ndarray, y: np.ndarray) -> None:
+        """Fit the Gaussian Process model to data
 
-training_iter = 50
+        Parameters
+        ----------
+        X
+            Array representing amino acid sequences. Each entry is an integer-encoded sequence
+        y
+            Scalar values to predict, one per sequence
+        """
+        self.X = X
+        self.y = y.reshape(-1, 1)
+        self.N = len(X)
+        self._fill_K()
 
-import numpy as np
+    def predict(self, Xstar: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
+        """Predict scalar property values for sequences Xstar
 
-X = np.argmax(X, axis=-1)
+        Parameters
+        ----------
+        Xstar
+            Array representing amino acid sequences. Each entry is an integer-encoded sequence
 
-X_train, y_train, X_test, y_test = random_split(X, y=y)
-
-X_train = torch.from_numpy(X_train)
-y_train = torch.from_numpy(y_train)
-
-# Wrap training, prediction and plotting from the ExactGP-Tutorial into a function,
-# so that we do not have to repeat the code later on
-def train(model, likelihood, training_iter=training_iter):
-    # Use the adam optimizer
-    optimizer = torch.optim.Adam(model.parameters(), lr=0.1)  # Includes GaussianLikelihood parameters
-
-    # "Loss" for GPs - the marginal log likelihood
-    mll = gpytorch.mlls.ExactMarginalLogLikelihood(likelihood, model)
-
-    for i in range(training_iter):
-        # Zero gradients from previous iteration
-        optimizer.zero_grad()
-        # Output from model
-        output = model(X_train)
-        # Calc loss and backprop gradients
-        loss = -mll(output, y_train)
-        loss.backward()
-        optimizer.step()
-        print(loss.item())
-
-
-def predict(model, likelihood, test_x = torch.linspace(0, 1, 51)):
-    model.eval()
-    likelihood.eval()
-    # Make predictions by feeding model through likelihood
-    with torch.no_grad(), gpytorch.settings.fast_pred_var():
-        # Test points are regularly spaced along [0,1]
-        return likelihood(model(test_x))
-
-class BlosumKernel(gpytorch.kernels.Kernel):
-    has_lengthscale = True
-
-    # this is the kernel function
-    def forward(self, x1, x2, **params):
-        c = torch.tensor(1.0)
-        beta = torch.tensor(0.1)
-        kappa = torch.zeros(len(x1), len(x2))
-        for i, xi in enumerate(x1):
-            for j, xj in enumerate(x2):
-                kij = torch.prod(BLOSUM[(xi, xj)] ** beta)
-                kii = torch.prod(BLOSUM[(xi, xi)] ** beta)
-                kjj = torch.prod(BLOSUM[(xj, xj)] ** beta)
-
-                k = kij / (torch.sqrt(kii * kjj))
-
-                k = torch.exp(c * k)
-                k = (k + c) / self.lengthscale
-
-                kappa[i, j] = k
-
-        return kappa
-
-# Use the simplest form of GP model, exact inference
-class BlosumGPModel(gpytorch.models.ExactGP):
-    def __init__(self, train_x, train_y, likelihood):
-        super().__init__(train_x, train_y, likelihood)
-        self.mean_module = gpytorch.means.ConstantMean()
-        self.covar_module = BlosumKernel()
-
-    def forward(self, x):
-        mean_x = self.mean_module(x)
-        covar_x = self.covar_module(x)
-        return gpytorch.distributions.MultivariateNormal(mean_x, covar_x)
-
-likelihood = gpytorch.likelihoods.GaussianLikelihood()
-# initialize the new model
-model = BlosumGPModel(X_train, y_train, likelihood)
-model.double()
-
-# set to training mode and train
-model.train()
-likelihood.train()
-train(model, likelihood)
-
-# Get into evaluation (predictive posterior) mode and predict
-model.eval()
-likelihood.eval()
-observed_pred = predict(model, likelihood)
-
-print("done")
+        Returns
+        -------
+            Tuple: mean and variance of prediction
+        """
+        M = len(Xstar)
+        Kstar = np.zeros((M, self.N))
+        for i, j in itertools.product(range(M), range(self.N)):
+            kij = self.kernel(Xstar[i], self.X[j])
+            Kstar[i, j] = kij
+        Kstarstar = np.zeros((M, M))
+        for i, j in itertools.product(range(M), range(M)):
+            kij = self.kernel(Xstar[i], Xstar[j])
+            Kstarstar[i, j] = kij
+        Kinv = np.linalg.inv(self.K)
+        mu_star = np.matmul(Kstar, np.matmul(Kinv, self.y))
+        sigma_star = Kstarstar - np.linalg.multi_dot([Kstar, Kinv, Kstar.T])
+        return mu_star.squeeze(), np.sqrt(np.diag(sigma_star)).squeeze()
