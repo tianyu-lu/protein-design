@@ -1,6 +1,11 @@
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
+
+
+def KLLoss(mean, logvar):
+    return torch.mean(
+        -0.5 * torch.sum(1 + logvar - mean**2 - logvar.exp(), dim=1), dim=0
+    )
 
 
 class VAE(nn.Module):
@@ -11,6 +16,7 @@ class VAE(nn.Module):
         self.n_tokens = kwargs["n_tokens"]
         self.latent_dim = kwargs["latent_dim"]
         self.enc_units = kwargs["enc_units"]
+        self.kl_weight = kwargs["kl_weight"]
 
         self.encoder = nn.Sequential(
             nn.Linear(self.seqlen * self.n_tokens, self.enc_units),
@@ -25,6 +31,9 @@ class VAE(nn.Module):
             nn.Linear(self.enc_units, self.seqlen * self.n_tokens),
         )
         self.getprobs = nn.Softmax(dim=-1)
+
+        self.recon_loss_fn = nn.MSELoss()
+        self.kl_loss_fn = KLLoss
 
     def encode(self, x):
         z = self.encoder(x)
@@ -42,37 +51,29 @@ class VAE(nn.Module):
         eps = torch.randn_like(std)
         return mean + eps * std
 
-    def forward(self, x, **kwargs):
+    def forward(self, x):
         mean, logvar = self.encode(x)
         z = self.reparameterize(mean, logvar)
         return [self.decode(z), x, mean, logvar]
 
-    def loss(self, *args, **kwargs):
-        xhat = args[0]
-        x = args[1]
-        mean = args[2]
-        logvar = args[3]
+    def loss(self, x, x_target):
+        xhat, _, mean, logvar = self.forward(x)
 
-        kl_weight = kwargs["kl_weight"]
-
-        x = x.view(-1, self.seqlen, self.n_tokens)
+        x_target = x_target.view(-1, self.seqlen, self.n_tokens)
         # x = torch.argmax(x, -1).flatten()
-        # xhat = xhat.flatten(end_dim=1)
-        # recon_loss = F.cross_entropy(xhat, x.type(torch.long))
-        recon_loss = F.mse_loss(x, xhat)
+        # x_target = x_target.flatten(end_dim=1)
+        # recon_loss = F.cross_entropy(x_target, x.type(torch.long))
+        recon_loss = self.recon_loss_fn(xhat, x_target)
+        kl_loss = self.kl_loss_fn(mean, logvar)
 
-        kl_loss = torch.mean(
-            -0.5 * torch.sum(1 + logvar - mean**2 - logvar.exp(), dim=1), dim=0
-        )
+        loss = recon_loss + self.kl_weight * kl_loss
 
-        loss = recon_loss + kl_weight * kl_loss
+        return loss
 
-        return {"loss": loss, "recon_loss": recon_loss, "kl_loss": -kl_loss}
-
-    def sample(self, num_samples, device, **kwargs):
-        z = torch.randn(num_samples, self.latent_dim).to(device)
+    def sample(self, num_samples):
+        z = torch.randn(num_samples, self.latent_dim).to(self.decoder.device)
         return self.decode(z)
 
-    def reconstruct(self, x, **kwargs):
+    def reconstruct(self, x):
         recon = self.forward(x)
         return recon[0]
