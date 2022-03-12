@@ -82,6 +82,25 @@ def seqs_to_onehot(seqs: List[str], flatten: bool = False) -> np.ndarray:
     if flatten:
         result = np.array(onehots)
         N, L, D = result.shape
-        return result.reshape(N, L*D)
+        return result.reshape(N, L * D)
     else:
         return np.array(onehots)
+
+
+def integer_to_seqs(mat: np.ndarray) -> List[str]:
+    """Convert an integer encoded list of sequences back into letters
+
+    Parameters
+    ----------
+    mat
+        Integer encoded sequences
+
+    Returns
+    -------
+        List of amino acid strings
+    """
+    seqs = []
+    for row in mat:
+        seq = "".join(IDX_AA[i] for i in row)
+        seqs.append(seq)
+    return seqs
