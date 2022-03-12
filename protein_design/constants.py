@@ -1,7 +1,7 @@
 import torch
 import numpy as np
 
-AA = list("-ACDEFGHIKLMNPQRSTVWY")
+AA = list("ARNDCQEGHILKMFPSTWYV")
 
 AA_IDX = {AA[i]: i for i in range(len(AA))}
 
