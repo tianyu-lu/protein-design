@@ -12,6 +12,7 @@ class MLP(nn.Module):
 
         self.data_dim = kwargs["data_dim"]
         self.hid_dim = kwargs["hid_dim"]
+        self.loss_fn = nn.MSELoss()
 
         self.model = nn.Sequential(
             nn.Linear(self.data_dim, self.hid_dim),
@@ -20,8 +21,12 @@ class MLP(nn.Module):
             nn.Tanh(),
         )
 
-    def forward(self, x):
-        return self.model(x)
+    def forward(self, X):
+        return self.model(X).squeeze()
+
+    def loss(self, X, y):
+        y_pred = self.model(X)
+        return self.loss_fn(y, y_pred)
 
 
 class GPParams(NamedTuple):
