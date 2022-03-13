@@ -11,6 +11,7 @@ import pandas as pd
 import numpy as np
 import plotly.express as px
 
+from protein_design.constants import device
 from protein_design.data import ProteinData, cycle, to_numpy
 from protein_design.evaluator import regression_metrics
 
@@ -47,7 +48,7 @@ def train(
     save_fname,
     y_train=None,
     y_test=None,
-    max_steps=10000,
+    steps=10000,
     pbar_increment=100,
     batch_size=32,
     optimizer=None,
@@ -88,8 +89,8 @@ def train(
 
     best_val_loss = 1e9
     progress_format = "train loss: {:.6f} val loss: {:.6f}"
-    with tqdm(total=max_steps, desc=progress_format.format(0, 0)) as pbar:
-        for i in range(max_steps):
+    with tqdm(total=steps, desc=progress_format.format(0, 0)) as pbar:
+        for i in range(steps):
             train_loss = training_step(model, train_cycle, optimizer, scheduler)
             val_loss = validation_step(model, test_cycle)
             train_losses.append(train_loss)
@@ -103,9 +104,9 @@ def train(
                 pbar.update(pbar_increment)
 
     df_result = pd.DataFrame()
-    df_result["steps"] = list(range(max_steps)) + list(range(max_steps))
+    df_result["steps"] = list(range(steps)) + list(range(steps))
     df_result["loss"] = train_losses + val_losses
-    df_result["stage"] = ["train"] * max_steps + ["val"] * max_steps
+    df_result["stage"] = ["train"] * steps + ["val"] * steps
     fig = px.line(df_result, x="steps", y="loss", color="stage")
     fig.show()
 
