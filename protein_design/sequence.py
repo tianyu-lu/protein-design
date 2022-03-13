@@ -1,13 +1,20 @@
 from pathlib import Path
-from typing import List, Optional
+from typing import List, Optional, Tuple
+from logging import Logger
 
 from Bio import SeqIO
 import numpy as np
+from tqdm import tqdm
+from abnumber import Chain
+from abnumber.exceptions import ChainParseError
 
 from protein_design.constants import AA, AA_IDX, IDX_AA
 
 
-def get_seqs(fname: Path, format: str = "fasta") -> List[str]:
+logger = Logger("protein_design")
+
+
+def read_fasta(fname: Path, format: str = "fasta") -> List[str]:
     """Read a file of sequences and returns a list of sequences
 
     Parameters
@@ -23,6 +30,31 @@ def get_seqs(fname: Path, format: str = "fasta") -> List[str]:
         List of sequences
     """
     return [record.seq for record in SeqIO.parse(fname, format)]
+
+
+def write_fasta(
+    fname: Path, seqs: List[str], headers: Optional[List[str]] = None
+) -> None:
+    """Write sequences to a fasta file
+
+    Parameters
+    ----------
+    fname
+        Full path of file name to save as
+    seqs
+        List of sequences
+    headers, optional
+        List of headers, by default None, in which case sequences will be labeled as
+        integers starting from 0
+    """
+    if headers is None:
+        headers = [f">{i}" for i in range(len(seqs))]
+    records = []
+    for i, seq in enumerate(seqs):
+        records.append(headers[i])
+        records.append(seq)
+    with open(fname, "w") as fp:
+        fp.write("\n".join(records))
 
 
 def seq_to_onehot(seq: str, max_len: Optional[int] = None) -> np.ndarray:
@@ -104,3 +136,54 @@ def integer_to_seqs(mat: np.ndarray) -> List[str]:
         seq = "".join(IDX_AA[i] for i in row)
         seqs.append(seq)
     return seqs
+
+
+def seqs_to_chain(seqs: List[str], scheme: str = "imgt") -> List[Chain]:
+    """Converts a list of antibody sequences to a list of abnumber.Chain objects
+    Logs sequences which could not be processed by abnumber
+
+    Parameters
+    ----------
+    seqs
+        List of antibody sequences
+    scheme, optional
+        Antibody number scheme to use, by default "imgt". One of: imgt, chothia, kabat, aho
+
+    Returns
+    -------
+        List of abnumber.Chain objects
+    """
+    chains = []
+    for seq in tqdm(seqs):
+        try:
+            chains.append(Chain(seq, scheme=scheme))
+        except (NotImplementedError, ChainParseError) as err:
+            logger.warning(err)
+    return chains
+
+
+def align_antibody_seqs(
+    seqs: List[str], scheme: str = "imgt"
+) -> Tuple[List[str], List[str]]:
+    """Aligns a list of antibody sequences
+
+    Parameters
+    ----------
+    seqs
+        List of sequences
+    scheme, optional
+        Antibody number scheme to use, by default "imgt". One of: imgt, chothia, kabat, aho
+
+    Returns
+    -------
+        Tuple of positions and aligned sequences
+    """
+    chains = seqs_to_chain(seqs, scheme=scheme)
+    alignment = chains[0].align(*chains[1:])
+    positions, aligned_seqs = [], []
+    for pos, (aas) in alignment:
+        positions.append(pos.format())
+        aligned_seqs.append(list(aas))
+    aligned_seqs = np.array(aligned_seqs)
+    aligned_seqs = ["".join(aligned_seqs[:, i]) for i in range(len(aligned_seqs))]
+    return positions, aligned_seqs
