@@ -1,11 +1,13 @@
 import torch
 import numpy as np
 
-AA = list("ARNDCQEGHILKMFPSTWYV")
+AA = list("ARNDCQEGHILKMFPSTWYV-")
 
 AA_IDX = {AA[i]: i for i in range(len(AA))}
 
 IDX_AA = {i: AA[i].upper() for i in range(len(AA))}
+
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 BLOSUM = np.array(
     [
@@ -451,5 +453,3 @@ BLOSUM = np.array(
         ],
     ]
 )
-
-device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
