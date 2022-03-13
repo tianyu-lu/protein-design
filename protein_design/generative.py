@@ -1,7 +1,10 @@
 import numpy as np
 import torch
 import torch.nn as nn
-import torch.functional as F
+import torch.nn.functional as F
+
+from protein_design.data import to_tensor
+from protein_design.constants import AA
 
 
 def KLLoss(mean, logvar):
@@ -136,3 +139,97 @@ class Attention(nn.Module):
         output = self.layer_norm(output + q)
 
         return output
+
+
+def label_smoothed_nll_loss(lprobs, target, epsilon: float = 1e-8, ignore_index=None):
+    """Adapted from fairseq
+
+    Parameters
+    ----------
+    lprobs
+        Log probabilities of amino acids per position
+    target
+        Target amino acids encoded as integer indices
+    epsilon
+        Smoothing factor between 0 and 1, by default 1e-8
+    ignore_index, optional
+        Amino acid (encoded as integer) to ignore, by default None
+
+    Returns
+    -------
+        Negative log-likelihood loss
+    """
+    nll_loss = -lprobs.gather(dim=-1, index=target)
+    smooth_loss = -lprobs.sum(dim=-1, keepdim=True)
+    if ignore_index is not None:
+        pad_mask = target.eq(ignore_index)
+        nll_loss.masked_fill_(pad_mask, 0.0)
+        smooth_loss.masked_fill_(pad_mask, 0.0)
+    else:
+        nll_loss = nll_loss.squeeze(-1)
+        smooth_loss = smooth_loss.squeeze(-1)
+    nll_loss = nll_loss.sum()
+    smooth_loss = smooth_loss.sum()
+    eps_i = epsilon / lprobs.size(-1)
+    loss = (1.0 - epsilon) * nll_loss + eps_i * smooth_loss
+    return loss
+
+
+def positional_embedding(d_model: int, length: int) -> torch.tensor:
+    result = -torch.exp(torch.arange(0, d_model, 2) * (np.log(10000) / d_model))
+
+    numbers = torch.arange(0, length)
+    numbers = numbers.unsqueeze(0)
+    numbers = numbers.unsqueeze(2)
+
+    result = numbers * result
+    result = torch.cat((torch.sin(result), torch.cos(result)), 2)
+    result = to_tensor(result)
+
+    return nn.Parameter(result, requires_grad=True)
+
+
+class CamelBERT(nn.Module):
+    def __init__(self, n_head, d_model, d_k, d_v, dropout=0.1, num_mask=9):
+        super(CamelBERT, self).__init__()
+
+        self.d_model = d_model
+        self.d_v = d_v
+
+        self.embed = nn.Embedding(len(AA) + 1, d_model)
+        self.positional_embedding = None
+
+        self.layer1 = Attention(n_head, d_model, d_k, d_v, dropout=dropout)
+        self.layer2 = Attention(n_head, d_model, d_k, d_v, dropout=dropout)
+        self.linear = nn.Linear(d_model, len(AA))
+
+        self.num_mask = num_mask
+
+    def forward(self, x):
+        embeds = self.embed(x)
+        if self.positional_embedding is None:
+            self.positional_embedding = positional_embedding(self.d_model, x.shape[1])
+        embeds += self.positional_embedding
+
+        h1 = self.layer1(embeds, embeds, embeds)
+        h2 = self.layer2(h1, h1, h1)
+
+        B, L, D = h2.shape
+        logits = self.linear(h2.view(B * L, D)).view(B, L, len(AA))
+        lprobs = F.log_softmax(logits, dim=-1)
+
+        return lprobs
+
+    def loss(self, x, _):
+        B, L = x.shape
+        start_idx = np.random.choice(range(L - self.num_mask))
+        masked_idx = tuple(range(start_idx, start_idx + self.num_mask))
+
+        x_target = x[:, masked_idx]
+        x[:, masked_idx] = 21
+
+        lprobs = self.forward(x)[:, masked_idx]
+        loss = label_smoothed_nll_loss(
+            lprobs.view(-1, lprobs.size(-1)), x_target.view(-1, 1), ignore_index=20
+        )
+        return loss / (B * self.num_mask)
