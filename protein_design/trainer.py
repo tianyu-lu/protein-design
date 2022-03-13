@@ -4,7 +4,6 @@ from logging import Logger
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
-from torchsummary import summary
 
 from tqdm import tqdm
 import pandas as pd
@@ -70,7 +69,7 @@ def train(
 
     input_shape = list(X_train.shape)
     input_shape[0] = batch_size
-    logger.info(summary(model.float(), tuple(input_shape)))
+    logger.info(model)
     logger.info(f"Training on {len(train_dataset)} examples")
     logger.info(f"Testing on {len(test_dataset)} examples")
     logger.info(f"Model placed on {device}")
