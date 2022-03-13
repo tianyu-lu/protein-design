@@ -2,9 +2,11 @@ import numpy as np
 import torch
 from torch.utils.data import Dataset
 
+from protein_design.constants import device
+
 
 def to_tensor(X) -> torch.tensor:
-    return X if torch.is_tensor(X) else torch.from_numpy(X)
+    return X.to(device) if torch.is_tensor(X) else torch.from_numpy(X).to(device)
 
 
 def to_numpy(X) -> np.ndarray:

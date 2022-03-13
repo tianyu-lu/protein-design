@@ -72,7 +72,9 @@ def train(
     logger.info(summary(model.float(), tuple(input_shape)))
     logger.info(f"Training on {len(train_dataset)} examples")
     logger.info(f"Testing on {len(test_dataset)} examples")
+    logger.info(f"Model placed on {device}")
     model.double()
+    model = model.to(device)
 
     train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
     test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=True)
