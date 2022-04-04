@@ -4,7 +4,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from protein_design.data import to_tensor
-from protein_design.constants import AA
+from protein_design.constants import AA, device
 
 
 def KLLoss(mean, logvar):
@@ -76,8 +76,12 @@ class VAE(nn.Module):
         return loss
 
     def sample(self, num_samples):
-        z = torch.randn(num_samples, self.latent_dim).to(self.decoder.device)
-        return self.decode(z)
+        z = (
+            torch.randn(num_samples, self.latent_dim)
+            .type(torch.DoubleTensor)
+            .to(device)
+        )
+        return self.decode(z).cpu().detach().numpy()
 
     def reconstruct(self, x):
         recon = self.forward(x)

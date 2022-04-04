@@ -6,8 +6,6 @@ from logging import Logger
 from Bio import SeqIO
 import numpy as np
 from tqdm import tqdm
-from abnumber import Chain
-from abnumber.exceptions import ChainParseError
 
 from protein_design.constants import AA, AA_IDX, IDX_AA
 
@@ -163,10 +161,9 @@ def probs_to_seqs(mat: np.ndarray, sample: bool = True) -> List[str]:
     for b, l in itertools.product(range(B), range(L)):
         p = mat[b, l]
         if sample:
-            k = np.random.choice(D, p=p)
-            int_seqs[b, l] = IDX_AA[k]
+            int_seqs[b, l] = np.random.choice(D, p=p)
         else:
-            k = np.argmax(p)
+            int_seqs[b, l] = np.argmax(p)
     return integer_to_seqs(int_seqs)
 
 
@@ -186,59 +183,7 @@ def trim_gaps(mat: np.ndarray, perc: float = 0.8) -> np.ndarray:
         One-hot sequence array with gaps trimmed
     """
     B = mat.shape[0]
-    gaps_threshold = B * perc
     frac = np.sum(mat, axis=0) / B  # shape (L, D)
-    mask = frac[:, AA_IDX["-"]] < gaps_threshold  # shape (L,)
+    mask = frac[:, AA_IDX["-"]] < perc  # shape (L,)
     trimmed = mat[:, mask, :]
     return trimmed
-
-
-def seqs_to_chain(seqs: List[str], scheme: str = "imgt") -> List[Chain]:
-    """Converts a list of antibody sequences to a list of abnumber.Chain objects
-    Logs sequences which could not be processed by abnumber
-
-    Parameters
-    ----------
-    seqs
-        List of antibody sequences
-    scheme, optional
-        Antibody number scheme to use, by default "imgt". One of: imgt, chothia, kabat, aho
-
-    Returns
-    -------
-        List of abnumber.Chain objects
-    """
-    chains = []
-    for seq in tqdm(seqs):
-        try:
-            chains.append(Chain(seq, scheme=scheme))
-        except (NotImplementedError, ChainParseError) as err:
-            logger.warning(err)
-    return chains
-
-
-def align_antibody_seqs(
-    seqs: List[str], scheme: str = "imgt"
-) -> Tuple[List[str], List[str]]:
-    """Aligns a list of antibody sequences
-
-    Parameters
-    ----------
-    seqs
-        List of sequences
-    scheme, optional
-        Antibody number scheme to use, by default "imgt". One of: imgt, chothia, kabat, aho
-
-    Returns
-    -------
-        Tuple of positions and aligned sequences
-    """
-    chains = seqs_to_chain(seqs, scheme=scheme)
-    alignment = chains[0].align(*chains[1:])
-    positions, aligned_seqs = [], []
-    for pos, (aas) in alignment:
-        positions.append(pos.format())
-        aligned_seqs.append(list(aas))
-    aligned_seqs = np.array(aligned_seqs)
-    aligned_seqs = ["".join(aligned_seqs[:, i]) for i in range(len(aligned_seqs))]
-    return positions, aligned_seqs
