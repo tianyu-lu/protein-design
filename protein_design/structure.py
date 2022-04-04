@@ -1,16 +1,20 @@
-from typing import List, Union, Tuple
+from typing import NewType, List, Optional, Union, Tuple
 from pathlib import Path
 import subprocess
 import itertools
 
 import numpy as np
 import py3Dmol
+import pandas as pd
+from tqdm import tqdm
+from Bio.SeqUtils import seq1
 from Bio.PDB import PDBParser, PDBIO, Selection, Structure, Chain, Residue
+from Bio.PDB.PDBExceptions import PDBConstructionException
 
 
 parser = PDBParser()
 io = PDBIO()
-Resid: Tuple[int, str, Tuple[str, int, str]]
+Resid = NewType("Resid", Tuple[int, str, Tuple[str, int, str]])
 
 
 def download_pdb(pdb_code: str) -> Structure:
@@ -33,18 +37,25 @@ def download_pdb(pdb_code: str) -> Structure:
     return structure
 
 
-def remove_waters(structure: Structure) -> None:
+def remove_hetero(structure: Structure, subset: Optional[str] = None) -> None:
     """Removes all water molecules in {structure}
 
     Parameters
     ----------
     structure
         Bio.PDB.Structure
+    subset
+        Comma-delimited string of the residues to remove, e.g. "HOH,SO4" to remove all waters and SO4 molecules
     """
     residues_to_remove = []
     for residue in Selection.unfold_entities(structure, "R"):
-        if residue.get_resname() == "HOH":
-            residues_to_remove.append(residue)
+        resname = residue.get_resname()
+        if subset is not None:
+            if resname in subset.split(","):
+                residues_to_remove.append(residue)
+        else:
+            if seq1(resname) == "X":
+                residues_to_remove.append(residue)
     for r in residues_to_remove:
         r.get_parent().detach_child(r.get_id())
 
@@ -151,7 +162,7 @@ def show_from_pdbid(pdbid: str) -> None:
     pdbid
         PDB code
     """
-    view = py3Dmol.view(query=f"pdb:{pdbid}")
+    view = py3Dmol.view(query=f"pdb:{pdbid}", options={"doAssembly": True})
     view.setStyle({"cartoon": {"color": "spectrum"}})
     view.show()
 
@@ -193,3 +204,49 @@ def show_from_file(pdb_file: Union[Path, str], chains: str = "A") -> None:
                     }
                     }""",
     )
+
+
+def structure_to_sequence(structure: Structure) -> str:
+    """Convert a Bio.PDB.Structure into a sequence.
+
+    Parameters
+    ----------
+    structure
+        Bio.PDB.Structure
+
+    Returns
+    -------
+        Sequence
+    """
+    seq = []
+    for residue in Selection.unfold_entities(structure, "R"):
+        aa = seq1(residue.get_resname())
+        seq.append(aa)
+    return "".join(seq)
+
+
+if __name__ == "__main__":
+    entries = []
+    data_dir = Path("data/sabdab/2022-04-03/")
+    summary_fp = data_dir / "sabdab_nano_summary_all.tsv"
+    df = pd.read_csv(summary_fp, sep="\t")
+    df = df.loc[df["pdb"] != "6iyn"]
+    df.dropna(subset=["Hchain"], inplace=True)
+    pdb_codes = df["pdb"].to_list()
+    nanobody_chains = df["Hchain"].to_list()
+    structures_dir = data_dir / "imgt"
+    for pdb, chain in tqdm(zip(pdb_codes, nanobody_chains)):
+        pdb_fp = structures_dir / f"{pdb}.pdb"
+        structure = parser.get_structure(pdb, pdb_fp)
+        remove_hetero(structure)
+        try:
+            seq = structure_to_sequence(structure[0][chain])
+            entries.append(f">{pdb}_{chain}\n{seq}")
+        except KeyError:
+            print(pdb, chain)
+            continue
+        except PDBConstructionException:
+            print(pdb, chain)
+            continue
+    with open(data_dir / "vhh.fasta", "w") as fp:
+        fp.write("\n".join(entries))
