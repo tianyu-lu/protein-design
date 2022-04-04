@@ -1,3 +1,4 @@
+import itertools
 from pathlib import Path
 from typing import List, Optional, Tuple
 from logging import Logger
@@ -136,6 +137,60 @@ def integer_to_seqs(mat: np.ndarray) -> List[str]:
         seq = "".join(IDX_AA[i] for i in row)
         seqs.append(seq)
     return seqs
+
+
+def probs_to_seqs(mat: np.ndarray, sample: bool = True) -> List[str]:
+    """Convert a probability distribution over sequences, marginalized per position,
+    into a list of sequences
+
+    Parameters
+    ----------
+    mat
+        Probability matrix of sequences, shape B x L x D where
+            B is the number of sequences,
+            L is the sequence length and
+            D is the number of letters to sample from (typically 20 amino acids + 1 gap)
+    sample
+        If True (default), samples from the probability distribution per position. If False,
+        just takes the most likely amino acid at each position.
+
+    Returns
+    -------
+        List of amino acid strings
+    """
+    B, L, D = mat.shape
+    int_seqs = np.zeros((B, L))
+    for b, l in itertools.product(range(B), range(L)):
+        p = mat[b, l]
+        if sample:
+            k = np.random.choice(D, p=p)
+            int_seqs[b, l] = IDX_AA[k]
+        else:
+            k = np.argmax(p)
+    return integer_to_seqs(int_seqs)
+
+
+def trim_gaps(mat: np.ndarray, perc: float = 0.8) -> np.ndarray:
+    """Removes the columns of an input one-hot sequence array which more than {cutoff}
+    entries have gaps
+
+    Parameters
+    ----------
+    mat
+        One-hot sequence array, shape B x L x D
+    perc
+        Percentage of sequences above which a position is to be trimmed, by default 0.8
+
+    Returns
+    -------
+        One-hot sequence array with gaps trimmed
+    """
+    B = mat.shape[0]
+    gaps_threshold = B * perc
+    frac = np.sum(mat, axis=0) / B  # shape (L, D)
+    mask = frac[:, AA_IDX["-"]] < gaps_threshold  # shape (L,)
+    trimmed = mat[:, mask, :]
+    return trimmed
 
 
 def seqs_to_chain(seqs: List[str], scheme: str = "imgt") -> List[Chain]:
