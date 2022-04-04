@@ -12,7 +12,7 @@ from protein_design.sequence import (
 )
 from protein_design.splitter import random_split
 
-fp = "/home/tianyulu/proteinqure/code/projects/llama/data/sabdab/2022-04-03/aligned.fasta"
+fp = "../data/aligned.fasta"
 seqs = read_fasta(fp)
 
 X = seqs_to_onehot(seqs, flatten=False)
