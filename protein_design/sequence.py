@@ -137,6 +137,22 @@ def integer_to_seqs(mat: np.ndarray) -> List[str]:
     return seqs
 
 
+def seqs_to_integer(seqs: List[str]) -> np.ndarray:
+    """Converts a list of amino acid sequences to a 2D array of integer-encoded sequences
+
+    Parameters
+    ----------
+    seqs
+        List of amino acid sequences
+
+    Returns
+    -------
+        Array of integer-encoded sequences
+    """
+    onehot = seqs_to_onehot(seqs)
+    return np.argmax(onehot, axis=-1)
+
+
 def probs_to_seqs(mat: np.ndarray, sample: bool = True) -> List[str]:
     """Convert a probability distribution over sequences, marginalized per position,
     into a list of sequences
