@@ -10,7 +10,7 @@ from protein_design.sequence import integer_to_seqs, seqs_to_integer
 
 def KLLoss(mean, logvar):
     return torch.mean(
-        -0.5 * torch.sum(1 + logvar - mean**2 - logvar.exp(), dim=1), dim=0
+        -0.5 * torch.sum(1 + logvar - mean ** 2 - logvar.exp(), dim=1), dim=0
     )
 
 
@@ -239,7 +239,7 @@ class BERT(nn.Module):
         return loss / (B * self.num_mask)
 
     def sample(self, seq, n=1000, rm_aa=""):
-        masked = [i for i in range(len(seq)) if seq[i] == 'X']
+        masked = [i for i in range(len(seq)) if seq[i] == "X"]
         x = seqs_to_integer([seq])
         x = [aa if i not in masked else 21 for i, aa in enumerate(x[0])]
         x = np.expand_dims(np.array(x), 0)
@@ -266,5 +266,5 @@ class BERT(nn.Module):
                 else:
                     sampled.append(x[i])
             all_sampled.append(sampled)
-        
+
         return integer_to_seqs(np.array(all_sampled))
