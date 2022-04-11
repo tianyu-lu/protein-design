@@ -89,21 +89,21 @@ class VAE(nn.Module):
 
 
 class Attention(nn.Module):
-    def __init__(self, n_head, d_model, d_k, d_v, dropout=0.1):
+    def __init__(self, **kwargs):
         super(Attention, self).__init__()
 
-        self.n_head = n_head
-        self.d_model = d_model
-        self.d_k = d_k
-        self.d_v = d_v
+        self.n_head = kwargs["n_head"]
+        self.d_model = kwargs["d_model"]
+        self.d_k = kwargs["d_k"]
+        self.d_v = kwargs["d_v"]
 
-        self.W_Q = nn.Linear(d_model, n_head * d_k)
-        self.W_K = nn.Linear(d_model, n_head * d_k)
-        self.W_V = nn.Linear(d_model, n_head * d_v)
-        self.W_O = nn.Linear(n_head * d_v, d_model)
+        self.W_Q = nn.Linear(self.d_model, self.n_head * self.d_k)
+        self.W_K = nn.Linear(self.d_model, self.n_head * self.d_k)
+        self.W_V = nn.Linear(self.d_model, self.n_head * self.d_v)
+        self.W_O = nn.Linear(self.n_head * self.d_v, self.d_model)
 
-        self.layer_norm = nn.LayerNorm(d_model)
-        self.dropout = nn.Dropout(dropout)
+        self.layer_norm = nn.LayerNorm(self.d_model)
+        self.dropout = nn.Dropout(kwargs["dropout"])
 
     def forward(self, q, k, v):
         batch, len_q, _ = q.size()
@@ -194,20 +194,19 @@ def positional_embedding(d_model: int, length: int) -> torch.tensor:
 
 
 class BERT(nn.Module):
-    def __init__(self, n_head, d_model, d_k, d_v, dropout=0.1, num_mask=9):
+    def __init__(self, **kwargs):
         super(BERT, self).__init__()
 
-        self.d_model = d_model
-        self.d_v = d_v
+        self.d_model = kwargs["d_model"]
 
-        self.embed = nn.Embedding(len(AA) + 1, d_model)
+        self.embed = nn.Embedding(len(AA) + 1, self.d_model)
         self.positional_embedding = None
 
-        self.layer1 = Attention(n_head, d_model, d_k, d_v, dropout=dropout)
-        self.layer2 = Attention(n_head, d_model, d_k, d_v, dropout=dropout)
-        self.linear = nn.Linear(d_model, len(AA))
+        self.layer1 = Attention(**kwargs)
+        self.layer2 = Attention(**kwargs)
+        self.linear = nn.Linear(self.d_model, len(AA))
 
-        self.num_mask = num_mask
+        self.num_mask = kwargs["num_mask"]
 
     def forward(self, x):
         embeds = self.embed(x)
