@@ -4,7 +4,8 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from protein_design.data import to_tensor
-from protein_design.constants import AA, device
+from protein_design.constants import AA, AA_IDX, device
+from protein_design.sequence import integer_to_seqs, seqs_to_integer
 
 
 def KLLoss(mean, logvar):
@@ -236,3 +237,34 @@ class BERT(nn.Module):
             lprobs.view(-1, lprobs.size(-1)), x_target.view(-1, 1), ignore_index=20
         )
         return loss / (B * self.num_mask)
+
+    def sample(self, seq, n=1000, rm_aa=""):
+        masked = [i for i in range(len(seq)) if seq[i] == 'X']
+        x = seqs_to_integer([seq])
+        x = [aa if i not in masked else 21 for i, aa in enumerate(x[0])]
+        x = np.expand_dims(np.array(x), 0)
+        x = torch.from_numpy(x).type(torch.LongTensor)
+
+        with torch.no_grad():
+            lprobs = self.forward(x).cpu().detach().numpy()
+
+        def _sample(i) -> int:
+            probs = np.exp(lprobs[i])
+            probs[20] = 0
+            probs[21] = 0
+            for aa in rm_aa.split(","):
+                probs[AA_IDX[aa.upper()]] = 0
+            return np.random.choice(22, p=probs)
+
+        x = seqs_to_integer([seq])
+        all_sampled = []
+        for _ in range(n):
+            sampled = []
+            for i in range(len(seq)):
+                if i in masked:
+                    sampled.append(_sample(i))
+                else:
+                    sampled.append(x[i])
+            all_sampled.append(sampled)
+        
+        return integer_to_seqs(np.array(all_sampled))
