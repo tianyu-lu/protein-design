@@ -25,7 +25,7 @@ class MLP(nn.Module):
         return self.model(X).squeeze()
 
     def loss(self, X, y):
-        y_pred = self.model(X)
+        y_pred = self.forward(X)
         return self.loss_fn(y, y_pred)
 
 
