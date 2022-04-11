@@ -193,9 +193,9 @@ def positional_embedding(d_model: int, length: int) -> torch.tensor:
     return nn.Parameter(result, requires_grad=True)
 
 
-class CamelBERT(nn.Module):
+class BERT(nn.Module):
     def __init__(self, n_head, d_model, d_k, d_v, dropout=0.1, num_mask=9):
-        super(CamelBERT, self).__init__()
+        super(BERT, self).__init__()
 
         self.d_model = d_model
         self.d_v = d_v
