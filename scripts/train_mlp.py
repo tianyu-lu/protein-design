@@ -6,7 +6,7 @@ from protein_design.sequence import seqs_to_onehot
 from protein_design.discriminative import MLP
 from protein_design.trainer import train
 
-fname = "/home/tianyulu/Documents/csberg/2Q8A_AFinalBindings_Process_1_Of_32.txt"
+fname = "../data/2Q8A_binding.txt"
 
 df = pd.read_csv(fname, sep='\t', skiprows=1)
 
@@ -26,6 +26,6 @@ model = MLP(data_dim=11*21, hid_dim=20)
 
 batch_size = 16
 epochs = 1
-print(X_train.shape)
+
 model = train(model, X_train, X_test, "mlp.pt", y_train=y_train, y_test=y_test, 
               steps=int(len(df_filtered) / batch_size * epochs))

@@ -1,4 +1,4 @@
-from typing import Callable
+from typing import Callable, Optional, Union
 from logging import Logger
 
 import torch
@@ -18,7 +18,26 @@ from protein_design.evaluator import regression_metrics
 logger = Logger("protein_design")
 
 
-def training_step(model: nn.Module, data_generator: Callable, optimizer, scheduler):
+def training_step(
+    model: nn.Module, data_generator: Callable, optimizer, scheduler
+) -> float:
+    """One gradient descent step (model weights are updated)
+
+    Parameters
+    ----------
+    model
+        PyTorch model, instance of nn.Module
+    data_generator
+        Generator wrapper around a PyTorch DataLoader, see data.cycle()
+    optimizer
+        PyTorch optimizer, e.g. torch.optim.Adam
+    scheduler
+        PyTorch scheduler, e.g. torch.optim.lr_scheduler.CyclicLR
+
+    Returns
+    -------
+        Training loss on a batch of data
+    """
     X, y = next(data_generator)
 
     optimizer.zero_grad()
@@ -31,7 +50,20 @@ def training_step(model: nn.Module, data_generator: Callable, optimizer, schedul
     return loss.item()
 
 
-def validation_step(model: nn.Module, data_generator: Callable):
+def validation_step(model: nn.Module, data_generator: Callable) -> float:
+    """One validation step (no gradients are computed, model weight are not updated)
+
+    Parameters
+    ----------
+    model
+        PyTorch model, instance of nn.Module
+    data_generator
+        Generator wrapper around a PyTorch DataLoader, see data.cycle()
+
+    Returns
+    -------
+        Validation loss on a batch of data
+    """
     X, y = next(data_generator)
 
     with torch.no_grad():
@@ -41,18 +73,50 @@ def validation_step(model: nn.Module, data_generator: Callable):
 
 
 def train(
-    model,
-    X_train,
-    X_test,
-    save_fname,
-    y_train=None,
-    y_test=None,
-    steps=10000,
-    pbar_increment=100,
-    batch_size=32,
+    model: nn.Module,
+    X_train: Union[np.ndarray, torch.tensor],
+    X_test: Union[np.ndarray, torch.tensor],
+    save_fname: str,
+    y_train: Optional[Union[np.ndarray, torch.tensor]] = None,
+    y_test: Optional[Union[np.ndarray, torch.tensor]] = None,
+    steps: int = 10000,
+    pbar_increment: int = 100,
+    batch_size: int = 32,
     optimizer=None,
     scheduler=None,
-):
+) -> nn.Module:
+    """_summary_
+
+    Parameters
+    ----------
+    model
+        PyTorch model, instance of nn.Module
+    X_train
+        Training data input variables, e.g. array of one-hot encoded protein sequences
+    X_test
+        Test data input variables
+    save_fname
+        File name to save best trained model
+    y_train, optional
+        Training data output variables, e.g. binding affinity, by default None
+    y_test, optional
+        Test data output variables, by default None
+    steps, optional
+        Number of gradient descent steps, by default 10000
+    pbar_increment, optional
+        Number of steps per progress bar update, by default 100
+    batch_size, optional
+        Number of data points the model processes per gradient update step, by default 32
+    optimizer, optional
+        Method for updating the gradient. If not provided, defaults to Adam
+    scheduler, optional
+        Method for controlling learning rate schedule. If not provided, defaults to CyclicLR
+        cycling between 1e-4 and 1e-3 without momentum
+
+    Returns
+    -------
+        Trained model with the lowest loss on validation data
+    """
     if optimizer is None:
         optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
     if scheduler is None:

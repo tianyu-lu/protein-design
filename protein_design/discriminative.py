@@ -30,7 +30,7 @@ class MLP(nn.Module):
 
 
 class GPParams(NamedTuple):
-    homo_noise: float
+    homo_noise: float  # homoscedastic noise
     beta: float
     c: float
     d: float

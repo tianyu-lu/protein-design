@@ -15,7 +15,6 @@ fp = "../data/unaligned.fasta"
 seqs = read_fasta(fp)
 
 X = seqs_to_integer(seqs, flatten=False)
-print(X.shape)
 
 X = torch.from_numpy(X).type(torch.LongTensor)
 
@@ -57,6 +56,6 @@ train(
 )
 
 seq = "VQLQESGGGLVQAGGSLRLSCAASGSISRFNAMGWWRQAPGKEREFVARIVKGFDPVLADSVKGRFTISIDSAENTLALQMNRLKPEDTAVYYCXXXXXXXXWGQGTQVTVSS"
-sampled_seqs = model.sample(seq, n=1000, rm_aa="C,K")
+sampled_seqs = model.sample(seq, n_samples=1000, rm_aa="C,K")
 
 write_fasta("bert.fasta", sampled_seqs)
