@@ -1,6 +1,6 @@
 import torch
 from torch.optim import Adam
-from torch.optim.lr_scheduler import ExponentialLR
+from protein_design.learning import WarmupAnnealLR
 from protein_design.splitter import random_split
 from protein_design.trainer import train
 from protein_design.generative import BERT
@@ -14,7 +14,7 @@ from protein_design.splitter import random_split
 fp = "../data/unaligned.fasta"
 seqs = read_fasta(fp)
 
-X = seqs_to_integer(seqs, flatten=False)
+X = seqs_to_integer(seqs)
 
 X = torch.from_numpy(X).type(torch.LongTensor)
 
@@ -22,11 +22,11 @@ X_train, X_test = random_split(X)
 
 
 train_params = {
-    "batch_size": 16,
-    "lr": 0.005,
+    "batch_size": 32,
+    "lr": 0.0005,
     "weight_decay": 0.0,
-    "scheduler_gamma": 0.95,
-    "steps": 2000,
+    "warmup_steps": 100,
+    "steps": 1000,
 }
 model_params = {
     "n_head": 2,
@@ -42,7 +42,8 @@ model = BERT(**model_params)
 optimizer = Adam(
     model.parameters(), lr=train_params["lr"], weight_decay=train_params["weight_decay"]
 )
-scheduler = ExponentialLR(optimizer, gamma=train_params["scheduler_gamma"])
+
+scheduler = WarmupAnnealLR(optimizer, warmup_steps=train_params["warmup_steps"])
 
 train(
     model,
@@ -53,6 +54,7 @@ train(
     optimizer=optimizer,
     scheduler=scheduler,
     steps=train_params["steps"],
+    pbar_increment=10,
 )
 
 seq = "VQLQESGGGLVQAGGSLRLSCAASGSISRFNAMGWWRQAPGKEREFVARIVKGFDPVLADSVKGRFTISIDSAENTLALQMNRLKPEDTAVYYCXXXXXXXXWGQGTQVTVSS"

@@ -252,6 +252,8 @@ class BERT(nn.Module):
         embeds = self.embed(x)
         if self.positional_embedding is None:
             self.positional_embedding = positional_embedding(self.d_model, x.shape[1])
+        elif self.positional_embedding.shape[1] != x.shape[1]:
+            self.positional_embedding = positional_embedding(self.d_model, x.shape[1])
         embeds += self.positional_embedding
 
         h1 = self.layer1(embeds, embeds, embeds)
@@ -300,15 +302,15 @@ class BERT(nn.Module):
         x = torch.from_numpy(x).type(torch.LongTensor)
 
         with torch.no_grad():
-            lprobs = self.forward(x).cpu().detach().numpy()
+            lprobs = self.forward(x).cpu().detach().numpy().squeeze()
 
         def _sample(i) -> int:
             probs = np.exp(lprobs[i])
-            probs[20] = 0
-            probs[21] = 0
+            probs[20] = 0   # don't sample gap/mask characters
             for aa in rm_aa.split(","):
                 probs[AA_IDX[aa.upper()]] = 0
-            return np.random.choice(22, p=probs)
+            probs = probs / sum(probs)
+            return np.random.choice(21, p=probs)
 
         x = seqs_to_integer([seq])
         all_sampled = []
@@ -318,7 +320,7 @@ class BERT(nn.Module):
                 if i in masked:
                     sampled.append(_sample(i))
                 else:
-                    sampled.append(x[i])
+                    sampled.append(x[0, i])
             all_sampled.append(sampled)
 
         return integer_to_seqs(np.array(all_sampled))

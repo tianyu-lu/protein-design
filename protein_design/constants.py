@@ -4,6 +4,7 @@ import numpy as np
 AA = list("ARNDCQEGHILKMFPSTWYV-")
 
 AA_IDX = {AA[i]: i for i in range(len(AA))}
+AA_IDX["X"] = AA_IDX["-"]
 
 IDX_AA = {i: AA[i].upper() for i in range(len(AA))}
 
