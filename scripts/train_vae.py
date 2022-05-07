@@ -16,9 +16,7 @@ fp = "../data/aligned.fasta"
 seqs = read_fasta(fp)
 
 X = seqs_to_onehot(seqs, flatten=False)
-print(X.shape)
 X = trim_gaps(X)
-print(X.shape)
 
 B, L, D = X.shape
 X = X.reshape(B, L * D)
