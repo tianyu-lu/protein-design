@@ -139,7 +139,7 @@ def sample(
 
     Returns
     -------
-        When {save_to} is not provided, returns a list of generated sequences
+        When {save_fname} is not provided, returns a list of generated sequences
 
     Example
     -------
@@ -150,7 +150,10 @@ def sample(
 
     sampled_seqs = model.sample(seq, n_samples=nsample, rm_aa=rm_aa)
 
-    write_fasta(save_fname, sampled_seqs)
+    if save_fname is not None:
+        write_fasta(save_fname, sampled_seqs)
+    else:
+        return sampled_seqs
 
 
 if __name__ == "__main__":
