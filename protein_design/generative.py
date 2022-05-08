@@ -27,7 +27,7 @@ def KLLoss(mean: torch.tensor, logvar: torch.tensor):
         KL divergence loss
     """
     return torch.mean(
-        -0.5 * torch.sum(1 + logvar - mean ** 2 - logvar.exp(), dim=1), dim=0
+        -0.5 * torch.sum(1 + logvar - mean**2 - logvar.exp(), dim=1), dim=0
     )
 
 
@@ -230,7 +230,8 @@ def positional_embedding(d_model: int, length: int) -> torch.tensor:
     result = torch.cat((torch.sin(result), torch.cos(result)), 2)
     result = to_tensor(result)
 
-    return nn.Parameter(result, requires_grad=True)
+    # return nn.Parameter(result, requires_grad=True)
+    return result
 
 
 class BERT(nn.Module):
@@ -306,7 +307,7 @@ class BERT(nn.Module):
 
         def _sample(i) -> int:
             probs = np.exp(lprobs[i])
-            probs[20] = 0   # don't sample gap/mask characters
+            probs[20] = 0  # don't sample gap/mask characters
             for aa in rm_aa.split(","):
                 probs[AA_IDX[aa.upper()]] = 0
             probs = probs / sum(probs)

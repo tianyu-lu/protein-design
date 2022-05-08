@@ -30,7 +30,7 @@ model_params = {
 
 
 @app.command()
-def train(
+def train_model(
     fname: Path,
     save_name: Path,
     batch_size: int = 16,
@@ -60,7 +60,7 @@ def train(
 
     Example
     -------
-        python3 vae.py train ../data/aligned.fasta vae.pt --latent-dim 2
+        python3 vae.py train-model ../data/aligned.fasta vae.pt --latent-dim 2
     """
     seqs = read_fasta(fname)
 
@@ -110,6 +110,9 @@ def sample(
     saved_model: Path,
     nsample: int = 1000,
     save_fname: Optional[Path] = None,
+    seqlen: int = 126,
+    latent_dim: int = 20,
+    hidden_dim: int = 50,
 ) -> Optional[List[str]]:
     """_summary_
 
@@ -128,10 +131,15 @@ def sample(
 
     Example
     -------
-        python3 vae.py sample vae.pt --nsample 500 --save-fname vae.fasta
+        python3 vae.py sample vae.pt --nsample 500 --save-fname vae.fasta --latent-dim 2
     """
+    model_params["seqlen"] = seqlen
+    model_params["latent_dim"] = latent_dim
+    model_params["hidden_dim"] = hidden_dim
+
     model = model = VAE(**model_params)
     model.load_state_dict(torch.load(saved_model))
+    model.double()
 
     seq_probs = model.sample(nsample)
 

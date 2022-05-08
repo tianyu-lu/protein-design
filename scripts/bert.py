@@ -29,7 +29,7 @@ model_params = {
 
 
 @app.command()
-def train(
+def train_model(
     fname: Path,
     save_name: Path,
     batch_size: int = 32,
@@ -71,7 +71,7 @@ def train(
 
     Example
     -------
-        python3 bert.py train ../data/unaligned.fasta bert.pt
+        python3 bert.py train-model ../data/unaligned.fasta bert.pt --n-head 1
     """
     seqs = read_fasta(fname)
 
@@ -125,6 +125,10 @@ def sample(
     nsample: int = 1000,
     rm_aa: str = "C,K",
     save_fname: Optional[Path] = None,
+    num_heads: int = 2,
+    model_dim: int = 128,
+    key_dim: int = 128,
+    value_dim: int = 128,
 ) -> Optional[List[str]]:
     """Generate sequences from a trained sequence attention model
 
@@ -147,10 +151,16 @@ def sample(
 
     Example
     -------
-        python3 bert.py sample VQLQESGGGLVQAGGSLRLSCAASGSISRFNAMGWWRQAPGKEREFVARIVKGFDPVLADSVKGRFTISIDSAENTLALQMNRLKPEDTAVYYCXXXXXXXXXXXWGQGTQVTVSS bert.pt
+        python3 bert.py sample VQLQESGGGLVQAGGSLRLSCAASGSISRFNAMGWWRQAPGKEREFVARIVKGFDPVLADSVKGRFTISIDSAENTLALQMNRLKPEDTAVYYCXXXXXXXXXXXWGQGTQVTVSS bert.pt --num-heads 1
     """
-    model = BERT(**model_params)
+    model_params["n_head"] = num_heads
+    model_params["d_model"] = model_dim
+    model_params["d_k"] = key_dim
+    model_params["d_v"] = value_dim
+
+    model = model = BERT(**model_params)
     model.load_state_dict(torch.load(saved_model))
+    model.double()
 
     sampled_seqs = model.sample(seq, n_samples=nsample, rm_aa=rm_aa)
 
