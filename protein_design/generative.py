@@ -38,20 +38,20 @@ class VAE(nn.Module):
         self.seqlen = kwargs["seqlen"]
         self.n_tokens = kwargs["n_tokens"]
         self.latent_dim = kwargs["latent_dim"]
-        self.enc_units = kwargs["enc_units"]
+        self.hidden_dim = kwargs["hidden_dim"]
         self.kl_weight = kwargs["kl_weight"]
 
         self.encoder = nn.Sequential(
-            nn.Linear(self.seqlen * self.n_tokens, self.enc_units),
+            nn.Linear(self.seqlen * self.n_tokens, self.hidden_dim),
             nn.ELU(),
         )
-        self.mean = nn.Linear(self.enc_units, self.latent_dim)
-        self.var = nn.Linear(self.enc_units, self.latent_dim)
+        self.mean = nn.Linear(self.hidden_dim, self.latent_dim)
+        self.var = nn.Linear(self.hidden_dim, self.latent_dim)
 
         self.decoder = nn.Sequential(
-            nn.Linear(self.latent_dim, self.enc_units),
+            nn.Linear(self.latent_dim, self.hidden_dim),
             nn.ELU(),
-            nn.Linear(self.enc_units, self.seqlen * self.n_tokens),
+            nn.Linear(self.hidden_dim, self.seqlen * self.n_tokens),
         )
         self.getprobs = nn.Softmax(dim=-1)
 

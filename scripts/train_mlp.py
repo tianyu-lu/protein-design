@@ -10,7 +10,7 @@ from protein_design.trainer import train
 
 
 def train_mlp(
-    fname: str,
+    fname: Path,
     save_name: Path,
     seqlen: int = 11,
     alphabet_size: int = 21,
@@ -23,9 +23,9 @@ def train_mlp(
     Parameters
     ----------
     fname
-        File name of input csv
+        Path of input csv
     save_name
-        Full path to save best trained model
+        Path to save best trained model
     seqlen, optional
         Sequence length (note all inputs must have the same length), by default 11
     alphabet_size, optional
@@ -57,7 +57,7 @@ def train_mlp(
         model,
         X_train,
         X_test,
-        save_name,
+        str(save_name),
         y_train=y_train,
         y_test=y_test,
         steps=int(len(df_filtered) / batch_size * epochs),
