@@ -21,6 +21,7 @@ numpy = "1.21.0"
 scipy = "1.6.1"
 pandas = "1.1.5"
 py3Dmol = "^1.8.0"
+typer = "^0.4.1"
 
 [tool.poetry.dev-dependencies]
 ipdb = "^0.13.9"
