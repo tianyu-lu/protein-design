@@ -30,7 +30,7 @@ model_params = {
 
 
 @app.command()
-def train_vae(
+def train(
     fname: Path,
     save_name: Path,
     batch_size: int = 16,
@@ -38,7 +38,6 @@ def train_vae(
     steps: int = 1000,
     latent_dim: int = 20,
     hidden_dim: int = 50,
-    nsample: int = 1000,
 ):
     """Train a variational autoencoder on protein sequences
 
@@ -58,6 +57,10 @@ def train_vae(
         Dimension of VAE latent space, by default 20
     hidden_dim, optional
         Dimension of hidden layer in encoder and decoder, by default 50
+
+    Example
+    -------
+        python3 vae.py train ../data/aligned.fasta vae.pt --latent-dim 2
     """
     seqs = read_fasta(fname)
 
@@ -125,7 +128,7 @@ def sample(
 
     Example
     -------
-        python3 train_vae.py vae.pt --nsample 500 --save-fname vae.fasta
+        python3 vae.py sample vae.pt --nsample 500 --save-fname vae.fasta
     """
     model = model = VAE(**model_params)
     model.load_state_dict(torch.load(saved_model))
@@ -141,4 +144,4 @@ def sample(
 
 
 if __name__ == "__main__":
-    typer.run(train_vae)
+    app()

@@ -29,7 +29,7 @@ model_params = {
 
 
 @app.command()
-def train_bert(
+def train(
     fname: Path,
     save_name: Path,
     batch_size: int = 32,
@@ -68,6 +68,10 @@ def train_bert(
         Dropout, by default 0.1
     num_mask, optional
         Number of consecutive tokens to mask for masked-token prediction during training, by default 9
+
+    Example
+    -------
+        python3 bert.py train ../data/unaligned.fasta bert.pt
     """
     seqs = read_fasta(fname)
 
@@ -143,7 +147,7 @@ def sample(
 
     Example
     -------
-        python3 train_bert.py VQLQESGGGLVQAGGSLRLSCAASGSISRFNAMGWWRQAPGKEREFVARIVKGFDPVLADSVKGRFTISIDSAENTLALQMNRLKPEDTAVYYCXXXXXXXXXXXWGQGTQVTVSS bert.pt
+        python3 bert.py sample VQLQESGGGLVQAGGSLRLSCAASGSISRFNAMGWWRQAPGKEREFVARIVKGFDPVLADSVKGRFTISIDSAENTLALQMNRLKPEDTAVYYCXXXXXXXXXXXWGQGTQVTVSS bert.pt
     """
     model = BERT(**model_params)
     model.load_state_dict(torch.load(saved_model))

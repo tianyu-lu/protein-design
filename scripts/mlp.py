@@ -36,6 +36,10 @@ def train_mlp(
         Batch size, by default 16
     epochs, optional
         Epochs, by default 1
+
+    Example
+    -------
+        python3 mlp.py ../data/2Q8A_binding.txt mlp.pt
     """
     df = pd.read_csv(fname, sep="\t", skiprows=1)
 
