@@ -22,4 +22,12 @@ ligand_file = "../data/substrate.sdf"
 centroid = np.array([-10.581, -1.236, -6.007])  # CA of Y483 (active site)
 box_dims = np.array([20.0, 20.0, 20.0])
 
-poses, scores = vpg.generate_poses((protein_file, ligand_file), centroid=centroid, box_dims=box_dims, exhaustiveness=1, num_modes=20, out_dir="../data/vina", generate_scores=True)
+poses, scores = vpg.generate_poses(
+    (protein_file, ligand_file),
+    centroid=centroid,
+    box_dims=box_dims,
+    exhaustiveness=1,
+    num_modes=20,
+    out_dir="../data/vina",
+    generate_scores=True,
+)
