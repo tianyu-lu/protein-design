@@ -134,7 +134,7 @@ def get_interface(c1: Chain, c2: Chain, cutoff: float = 5.0) -> List[Resid]:
     return list(set(res1_interface).union(set(res2_interface)))
 
 
-def subset_structure(structure: Structure, subset_list: List[Resid]) -> None:
+def subset_structure(structure, subset_list) -> None:
     """Subsets the {structure} to keep only those residues in {subset_list}.
     Note: this function modifies the input {structure} in place.
 
@@ -146,12 +146,18 @@ def subset_structure(structure: Structure, subset_list: List[Resid]) -> None:
         List of residue identifiers to keep, obtained from e.g. get_interface()
     """
     to_remove = []
-    for model, chain, full_resid in subset_list:
-        for residue in Selection.unfold_entities(structure[model][chain]):
-            if residue.get_full_id() != full_resid:
-                to_remove.append(residue)
+    for residue in Selection.unfold_entities(structure, "R"):
+        model_id = residue.get_parent().get_parent().get_id()
+        chain_id = residue.get_parent().get_id()
+        residue_id = residue.get_id()
+        full_id = (model_id, chain_id, residue_id)
+        if full_id not in subset_list:
+            to_remove.append(residue)
     for residue in to_remove:
-        residue.get_parent().detach_child(residue)
+        try:
+            residue.get_parent().detach_child(residue.get_id())
+        except AttributeError:
+            pass
 
 
 def show_from_pdbid(pdbid: str) -> None:
