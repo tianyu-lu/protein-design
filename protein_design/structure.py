@@ -134,7 +134,7 @@ def get_interface(c1: Chain, c2: Chain, cutoff: float = 5.0) -> List[Resid]:
     return list(set(res1_interface).union(set(res2_interface)))
 
 
-def subset_structure(structure, subset_list) -> None:
+def subset_structure(structure: Structure, subset_list: List[Resid]) -> None:
     """Subsets the {structure} to keep only those residues in {subset_list}.
     Note: this function modifies the input {structure} in place.
 
