@@ -6,7 +6,7 @@ authors = ["Tianyu Lu"]
 license = "MIT"
 
 [tool.poetry.dependencies]
-python = ">=3.7,<3.11"
+python = ">=3.7,<3.10"
 torch = "^1.10.2"
 seaborn = "^0.11.2"
 tqdm = "^4.62.3"
@@ -22,6 +22,9 @@ scipy = "1.6.1"
 pandas = "1.1.5"
 py3Dmol = "^1.8.0"
 typer = "^0.4.1"
+deepchem = "^2.6.1"
+selfies = "^2.0.0"
+vina = "^1.2.3"
 
 [tool.poetry.dev-dependencies]
 ipdb = "^0.13.9"

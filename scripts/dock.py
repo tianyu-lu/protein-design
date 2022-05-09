@@ -17,7 +17,7 @@ vpg = dc.dock.VinaPoseGenerator(pocket_finder=None)
 
 protein_file = "../data/CBDAS.pdb"
 
-ligand_file = "../data/substrate.sdf"
+ligand_file = "../data/CBDAS_substrate.sdf"
 
 centroid = np.array([-10.581, -1.236, -6.007])  # CA of Y483 (active site)
 box_dims = np.array([20.0, 20.0, 20.0])
