@@ -300,7 +300,7 @@ class BERT(nn.Module):
         x = seqs_to_integer([seq])
         x = [aa if i not in masked else 21 for i, aa in enumerate(x[0])]
         x = np.expand_dims(np.array(x), 0)
-        x = torch.from_numpy(x).type(torch.LongTensor)
+        x = torch.from_numpy(x).type(torch.LongTensor).to(device)
 
         with torch.no_grad():
             lprobs = self.forward(x).cpu().detach().numpy().squeeze()

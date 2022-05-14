@@ -4,6 +4,7 @@ from pathlib import Path
 
 import torch
 from torch.optim import Adam
+from protein_design.constants import device
 from protein_design.learning import WarmupAnnealLR
 from protein_design.splitter import random_split
 from protein_design.trainer import train
@@ -161,6 +162,7 @@ def sample(
     model = model = BERT(**model_params)
     model.load_state_dict(torch.load(saved_model))
     model.double()
+    model.to(device)
 
     sampled_seqs = model.sample(seq, n_samples=nsample, rm_aa=rm_aa)
 

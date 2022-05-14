@@ -6,6 +6,7 @@ import torch
 from torch.optim import Adam
 from torch.optim.lr_scheduler import ExponentialLR
 
+from protein_design.constants import device
 from protein_design.splitter import random_split
 from protein_design.trainer import train
 from protein_design.generative import VAE
@@ -140,6 +141,7 @@ def sample(
     model = model = VAE(**model_params)
     model.load_state_dict(torch.load(saved_model))
     model.double()
+    model.to(device)
 
     seq_probs = model.sample(nsample)
 
